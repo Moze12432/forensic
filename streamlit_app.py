@@ -127,9 +127,9 @@ if "messages" not in st.session_state:
 # -----------------------------
 if option == "Login Logs":
     st.code("""
-[09:12] Login from 185.23.45.12 (Russia)
+[09:12] Login from 185.23.45.12 (Sokcho)
 [09:13] Failed attempts (x5)
-[09:15] Success - Lee Sungmin
+[09:15] Success - Sandesh
 [09:17] Privilege escalation
 """)
 
@@ -148,7 +148,7 @@ elif option == "Network Logs":
 
 elif option == "Employee Interviews":
     st.code("""
-Lee Sungmin: Clicked phishing email
+Sandesh: Clicked phishing email
 IT Admin: Saw unusual traffic
 HR: Nothing unusual
 """)
