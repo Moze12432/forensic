@@ -6,33 +6,36 @@ from groq import Groq
 # -----------------------------
 st.set_page_config(
     page_title="AI Forensics System",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 # -----------------------------
-# LOAD API KEY SECURELY
+# LOAD API KEY
 # -----------------------------
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception:
-    st.error("⚠️ GROQ_API_KEY not found. Please add it to .streamlit/secrets.toml")
+    st.error("⚠️ Missing GROQ_API_KEY in secrets.toml")
     st.stop()
 
 # -----------------------------
-# TITLE
+# MODEL FALLBACK LIST
 # -----------------------------
-st.title("🔍 AI-Assisted Digital Forensics Investigation")
-st.subheader("Case: Corporate Data Breach (Group 5)")
+MODELS = [
+    "llama-3.1-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it"
+]
 
 # -----------------------------
-# FORENSIC DATA (CONTROLLED CONTEXT)
+# FORENSIC CONTEXT
 # -----------------------------
 context = """
 Corporate Data Breach Investigation:
 
 Login Logs:
-- 09:12 Login attempt from IP 185.23.45.12 (foreign - Russia)
+- 09:12 Login attempt from IP 185.23.45.12 (Russia)
 - Multiple failed attempts
 - 09:15 Successful login (Lee Sungmin)
 - Privilege escalation detected
@@ -55,19 +58,51 @@ Employee Interview:
 
 Timeline:
 - 09:12 login attempt
-- 09:15 account compromised
+- 09:15 compromise
 - 09:17 privilege escalation
 - 09:30 file access
 - 09:40 compression
-- 10:05 data exfiltration
+- 10:05 exfiltration
 
 Conclusion:
-External attacker used phishing to steal credentials and exfiltrate sensitive company data.
+External attacker used phishing to compromise credentials and steal data.
 """
 
 # -----------------------------
-# SIDEBAR NAVIGATION
+# FALLBACK FUNCTION
 # -----------------------------
+def query_ai(user_input):
+    for model in MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a digital forensics expert. Answer ONLY using provided evidence. Be clear and professional."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Case Data:\n{context}\n\nQuestion: {user_input}"
+                    }
+                ],
+                temperature=0.3
+            )
+
+            return response.choices[0].message.content, model
+
+        except Exception as e:
+            continue
+
+    return "⚠️ All AI models are currently unavailable. Based on evidence, this was a phishing-based external attack.", None
+
+# -----------------------------
+# UI
+# -----------------------------
+st.title("🔍 AI-Assisted Digital Forensics Investigation")
+st.subheader("Corporate Data Breach (Group 5)")
+
+# Sidebar
 st.sidebar.title("📂 Evidence Panel")
 
 option = st.sidebar.radio(
@@ -83,125 +118,84 @@ option = st.sidebar.radio(
     ]
 )
 
-# -----------------------------
-# SESSION STATE FOR CHAT
-# -----------------------------
+# Chat memory
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # -----------------------------
-# DISPLAY STATIC PANELS
+# STATIC PANELS
 # -----------------------------
 if option == "Login Logs":
-    st.markdown("### 🔐 Login Activity")
     st.code("""
-[09:12] Login attempt from 185.23.45.12 (Russia)
-[09:13] Failed login attempts (x5)
-[09:15] Successful login - Lee Sungmin
-[09:17] Privilege escalation detected
+[09:12] Login from 185.23.45.12 (Russia)
+[09:13] Failed attempts (x5)
+[09:15] Success - Lee Sungmin
+[09:17] Privilege escalation
 """)
 
 elif option == "File Access Logs":
-    st.markdown("### 📁 Sensitive File Access")
     st.code("""
 HR_Salary.xlsx
 Employee_Data.csv
 Confidential_Report.pdf
-[09:40] Files compressed → archive.zip
+[09:40] archive.zip created
 """)
 
 elif option == "Network Logs":
-    st.markdown("### 🌐 Network Activity")
     st.code("""
-[10:05] Outbound transfer: 500MB
-Destination: 185.23.45.12
-Protocol: FTP
-Status: Completed
+[10:05] 500MB sent to 185.23.45.12 via FTP
 """)
 
 elif option == "Employee Interviews":
-    st.markdown("### 👤 Interview Records")
     st.code("""
-Lee Sungmin:
-"I clicked a verification email and entered my password."
-
-IT Admin:
-"There was unusual outbound traffic that morning."
-
-HR Manager:
-"No suspicious activity noticed."
+Lee Sungmin: Clicked phishing email
+IT Admin: Saw unusual traffic
+HR: Nothing unusual
 """)
 
 elif option == "Attack Timeline":
-    st.markdown("### ⏱️ Timeline Reconstruction")
     st.code("""
-09:12 – Suspicious login attempt
-09:15 – Account compromised
-09:17 – Privilege escalation
-09:30 – Sensitive files accessed
-09:40 – Files compressed
-10:05 – Data exfiltration
+09:12 Login attempt
+09:15 Compromise
+09:17 Privilege escalation
+09:30 File access
+09:40 Compression
+10:05 Exfiltration
 """)
 
 elif option == "Final Analysis":
-    st.markdown("### 🧠 Investigation Conclusion")
-    st.success("""
-Evidence indicates an EXTERNAL attacker.
-
-- Phishing attack compromised employee credentials
-- Unauthorized access gained
-- Sensitive HR and company data extracted
-- Data exfiltrated via FTP to external IP
-
-Conclusion:
-This breach was caused by a phishing attack targeting an internal employee.
-""")
+    st.success("External phishing attack → credential theft → data exfiltration")
 
 # -----------------------------
-# AI CHAT ASSISTANT
+# AI CHAT
 # -----------------------------
 elif option == "AI Chat Assistant":
 
     st.markdown("### 💬 AI Forensic Assistant")
 
-    # Display chat history
+    # Display history
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # Input box
     user_input = st.chat_input("Ask your investigation question...")
 
     if user_input:
-        # Save user message
         st.session_state.messages.append({"role": "user", "content": user_input})
 
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        # AI response
-        try:
-            response = client.chat.completions.create(
-                model="llama3-8b-8192",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a digital forensics expert. Answer ONLY using the provided case data. Be clear, logical, and professional."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Case Data:\n{context}\n\nQuestion: {user_input}"
-                    }
-                ]
-            )
-
-            ai_reply = response.choices[0].message.content
-
-        except Exception as e:
-            ai_reply = f"⚠️ Error: {str(e)}"
-
-        # Save AI response
-        st.session_state.messages.append({"role": "assistant", "content": ai_reply})
-
         with st.chat_message("assistant"):
-            st.markdown(ai_reply)
+            with st.spinner("Analyzing evidence..."):
+
+                reply, model_used = query_ai(user_input)
+
+                st.markdown(reply)
+
+                if model_used:
+                    st.caption(f"Model used: {model_used}")
+                else:
+                    st.caption("Fallback response (no model available)")
+
+        st.session_state.messages.append({"role": "assistant", "content": reply})
