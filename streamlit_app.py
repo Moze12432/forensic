@@ -35,9 +35,9 @@ context = """
 Corporate Data Breach Investigation:
 
 Login Logs:
-- 09:12 Login attempt from IP 185.23.45.12 (Russia)
+- 09:12 Login attempt from IP 185.23.45.12 (Sokcho)
 - Multiple failed attempts
-- 09:15 Successful login (Lee Sungmin)
+- 09:15 Successful login (Sandesh)
 - Privilege escalation detected
 
 File Access:
@@ -52,7 +52,7 @@ Network Activity:
 - Protocol: FTP
 
 Employee Interview:
-- Lee Sungmin clicked phishing email and entered password
+- Moses clicked phishing email and entered password
 - IT admin observed unusual outbound traffic
 - HR manager noticed nothing unusual
 
